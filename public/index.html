@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PreVise — Predictive Visual Security Engine</title>
+<meta name="description" content="PreVise is a multi-agent AI code review pipeline that catches security, logic, testing, and documentation issues before code ships." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg: #10141a;
+    --bg-raise: #171c24;
+    --panel: #1b212b;
+    --panel-2: #202733;
+    --line: #2b3340;
+    --text: #e7e4db;
+    --text-dim: #97a1b0;
+    --amber: #d99a4e;
+    --amber-dim: #a97a3f;
+    --teal: #6ea88f;
+    --red: #c1584f;
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    --cond: 'IBM Plex Sans Condensed', var(--sans);
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  html{ scroll-behavior: smooth; }
+
+  body{
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px),
+      radial-gradient(1200px 600px at 82% -10%, rgba(217,154,78,0.10), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  a{ color: inherit; }
+
+  .wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* ---------- header ---------- */
+
+  header{
+    border-bottom: 1px solid var(--line);
+    padding: 22px 0;
+    position: sticky;
+    top: 0;
+    background: rgba(16,20,26,0.86);
+    backdrop-filter: blur(6px);
+    z-index: 10;
+  }
+
+  .header-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .brand{
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: 0.08em;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .brand small{
+    font-family: var(--sans);
+    font-weight: 400;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: var(--text-dim);
+  }
+
+  .status-pill{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--teal);
+    border: 1px solid rgba(110,168,143,0.35);
+    background: rgba(110,168,143,0.07);
+    padding: 6px 12px;
+    border-radius: 3px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    white-space: nowrap;
+  }
+  .status-dot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--teal);
+    box-shadow: 0 0 0 0 rgba(110,168,143,0.6);
+    animation: pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow: 0 0 0 0 rgba(110,168,143,0.45); }
+    70%{ box-shadow: 0 0 0 6px rgba(110,168,143,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(110,168,143,0); }
+  }
+
+  /* ---------- hero ---------- */
+
+  .hero{
+    padding: 76px 0 64px;
+    display:grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 56px;
+    align-items: start;
+  }
+  @media (max-width: 900px){
+    .hero{ grid-template-columns: 1fr; padding-top: 48px; }
+  }
+
+  .kicker{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 18px;
+    opacity: 0;
+    animation: rise 0.6s ease-out forwards;
+  }
+
+  h1{
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: clamp(48px, 8vw, 84px);
+    line-height: 0.96;
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: rise 0.7s ease-out 0.08s forwards;
+  }
+  h1 span{ color: var(--amber); }
+
+  .lede{
+    font-size: 17px;
+    color: var(--text-dim);
+    max-width: 46ch;
+    margin-bottom: 30px;
+    opacity: 0;
+    animation: rise 0.7s ease-out 0.18s forwards;
+  }
+
+  @keyframes rise{
+    from{ opacity: 0; transform: translateY(14px); }
+    to{ opacity: 1; transform: translateY(0); }
+  }
+
+  .cta-row{
+    display:flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: rise 0.7s ease-out 0.28s forwards;
+  }
+
+  .btn{
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    padding: 12px 20px;
+    border-radius: 3px;
+    text-decoration: none;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    border: 1px solid var(--line);
+    transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  }
+  .btn-primary{
+    background: var(--amber);
+    color: #1a1204;
+    border-color: var(--amber);
+    font-weight: 600;
+  }
+  .btn-primary:hover{ transform: translateY(-1px); background: #e6ab5e; }
+  .btn-ghost{ color: var(--text); }
+  .btn-ghost:hover{ border-color: var(--amber-dim); color: var(--amber); }
+
+  /* ---------- terminal panel ---------- */
+
+  .term{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,0.6);
+    position: relative;
+    opacity: 0;
+    animation: rise 0.8s ease-out 0.2s forwards;
+  }
+  .term::after{
+    content:"";
+    position:absolute; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, rgba(217,154,78,0.55), transparent);
+    animation: scan 3.4s linear infinite;
+  }
+  @keyframes scan{
+    0%{ top: 0; opacity: 0; }
+    8%{ opacity: 1; }
+    92%{ opacity: 1; }
+    100%{ top: 100%; opacity: 0; }
+  }
+  .term-bar{
+    display:flex; align-items:center; gap:8px;
+    padding: 10px 14px;
+    background: var(--bg-raise);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .term-bar .dots{ display:flex; gap:6px; }
+  .term-bar .dots span{ width:9px; height:9px; border-radius:50%; background:#39424f; }
+  .term-body{
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 18px 16px;
+    color: #cfd6de;
+  }
+  .term-body .path{ color: var(--text-dim); }
+  .term-line{ display:flex; gap:10px; padding: 3px 0; align-items:baseline; }
+  .rule{ color: var(--amber); font-weight: 600; min-width: 46px; }
+  .sev-CRITICAL{ color: var(--red); }
+  .sev-HIGH{ color: #d38b5c; }
+  .sev-MEDIUM{ color: #c9b45c; }
+  .term-summary{
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line);
+    color: var(--text-dim);
+  }
+  .term-summary b{ color: var(--teal); }
+
+  /* ---------- section shared ---------- */
+
+  section{ padding: 58px 0; }
+  .section-head{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap: 24px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 18px;
+    margin-bottom: 36px;
+  }
+  .section-num{
+    font-family: var(--mono);
+    color: var(--amber-dim);
+    font-size: 13px;
+  }
+  h2{
+    font-family: var(--cond);
+    font-weight: 700;
+    font-size: clamp(28px, 4vw, 40px);
+    letter-spacing: -0.005em;
+  }
+  .section-note{
+    font-size: 13px;
+    color: var(--text-dim);
+    max-width: 32ch;
+    text-align: right;
+  }
+  @media (max-width: 700px){
+    .section-head{ flex-direction: column; align-items: flex-start; }
+    .section-note{ text-align:left; }
+  }
+
+  /* ---------- pipeline ---------- */
+
+  .pipeline{
+    display:grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 14px;
+  }
+  .pl-node{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 16px 18px;
+    position: relative;
+  }
+  .pl-node .tag{
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    display:block;
+    margin-bottom: 6px;
+  }
+  .pl-node .name{ font-weight: 600; font-size: 15px; }
+  .pl-orchestrator{ grid-column: 1 / 13; border-color: var(--amber-dim); }
+  .pl-orchestrator .name{ color: var(--amber); }
+  .pl-agents{ grid-column: 1 / 13; display:grid; grid-template-columns: repeat(4,1fr); gap:14px; }
+  .pl-agg{ grid-column: 1 / 8; }
+  .pl-dash{ grid-column: 8 / 13; border-color: rgba(110,168,143,0.4); }
+  .pl-dash .name{ color: var(--teal); }
+  @media (max-width: 800px){
+    .pl-agents{ grid-template-columns: repeat(2,1fr); }
+    .pl-agg, .pl-dash{ grid-column: 1 / 13; }
+  }
+  .pl-arrow{
+    grid-column: 1/13;
+    text-align:center;
+    color: var(--line);
+    font-family: var(--mono);
+    font-size: 18px;
+    line-height: 1;
+    user-select:none;
+  }
+
+  /* ---------- agents ---------- */
+
+  .agents-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 900px){ .agents-grid{ grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 600px){ .agents-grid{ grid-template-columns: 1fr; } }
+
+  .agent-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 22px;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .agent-card:hover{ border-color: var(--amber-dim); transform: translateY(-2px); }
+  .agent-card:nth-child(3n+2){ margin-top: 22px; }
+  .agent-card:nth-child(3n+3){ margin-top: -8px; }
+  @media (max-width: 900px){ .agent-card:nth-child(n){ margin-top:0; } }
+
+  .agent-card .file{
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    display:block;
+    margin-bottom: 10px;
+  }
+  .agent-card h3{
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .agent-card p{
+    font-size: 13.5px;
+    color: var(--text-dim);
+  }
+
+  /* ---------- rule catalogue ---------- */
+
+  .catalogue{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 12.5px;
+  }
+  @media (max-width: 800px){ .catalogue{ grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 480px){ .catalogue{ grid-template-columns: 1fr; } }
+  .cat-cell{
+    background: var(--panel);
+    padding: 16px 18px;
+  }
+  .cat-cell .code{ color: var(--amber); font-weight: 600; display:block; margin-bottom: 6px; }
+  .cat-cell .desc{ color: var(--text-dim); font-family: var(--sans); font-size: 13px; }
+
+  /* ---------- stack + footer ---------- */
+
+  .stack-row{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .chip{
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 13px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    color: var(--text-dim);
+  }
+
+  .quickstart{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 22px 24px;
+    margin-top: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .quickstart .l{ display:block; padding: 3px 0; }
+  .quickstart .c{ color: var(--text-dim); }
+  .quickstart .p::before{ content:"$ "; color: var(--amber); }
+
+  footer{
+    border-top: 1px solid var(--line);
+    padding: 34px 0 46px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap: wrap;
+    gap: 16px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  footer .brand-mini{
+    font-family: var(--mono);
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-row">
+    <div class="brand">PreVise<small>/ agent console</small></div>
+    <div class="status-pill"><span class="status-dot"></span>PIPELINE IDLE — AWAITING NEXT SCAN</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="hero">
+    <div>
+      <div class="kicker">Predictive Visual Security Engine</div>
+      <h1>Code review<br/>that <span>doesn't blink.</span></h1>
+      <p class="lede">
+        PreVise runs a multi-agent pipeline — built on IBM Bob — that reads a pull request the way
+        four specialists would: one hunting for security holes, one for logic errors, one for
+        missing tests, one for stale documentation. Findings are aggregated, ranked, and can be
+        auto-patched with a re-scan gate before anything ships.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#pipeline">See the pipeline</a>
+        <a class="btn btn-ghost" href="#catalogue">Browse the rule catalogue</a>
+      </div>
+    </div>
+
+    <div class="term">
+      <div class="term-bar">
+        <span class="dots"><span></span><span></span><span></span></span>
+        bob_orchestrator — scan report
+      </div>
+      <div class="term-body">
+        <div class="term-line"><span class="path">app/auth.py</span></div>
+        <div class="term-line"><span class="rule">S-01</span><span class="sev-CRITICAL">CRITICAL</span><span>SECRET_KEY hardcoded in source</span></div>
+        <div class="term-line"><span class="rule">S-04</span><span class="sev-CRITICAL">CRITICAL</span><span>weak JWT signing configuration</span></div>
+        <div class="term-line"><span class="rule">L-04</span><span class="sev-HIGH">HIGH</span><span>unhandled jwt.decode() exception</span></div>
+        <div class="term-line"><span class="path">app/crud.py</span></div>
+        <div class="term-line"><span class="rule">S-02</span><span class="sev-CRITICAL">CRITICAL</span><span>f-string SQL injection risk</span></div>
+        <div class="term-line"><span class="rule">S-03</span><span class="sev-HIGH">HIGH</span><span>plain-text password comparison</span></div>
+        <div class="term-line"><span class="rule">L-01</span><span class="sev-HIGH">HIGH</span><span>transfer_funds missing balance guard</span></div>
+        <div class="term-line"><span class="rule">L-02</span><span class="sev-MEDIUM">MEDIUM</span><span>divide_balance: no zero-division guard</span></div>
+        <div class="term-summary">7 findings · 4 critical/high auto-fixable · gated by <b>pytest</b> before merge</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pipeline">
+    <div class="section-head">
+      <div>
+        <div class="section-num">01 — Architecture</div>
+        <h2>One orchestrator, four specialists.</h2>
+      </div>
+      <div class="section-note">Bob dispatches the scan, then gates the fix behind a real test run.</div>
+    </div>
+
+    <div class="pipeline">
+      <div class="pl-node pl-orchestrator">
+        <span class="tag">Entry point</span>
+        <span class="name">IBM Bob Orchestrator — scan → report → approve → fix → verify</span>
+      </div>
+      <div class="pl-arrow">↓</div>
+      <div class="pl-agents">
+        <div class="pl-node"><span class="tag">Security</span><span class="name">Sentinel</span></div>
+        <div class="pl-node"><span class="tag">Correctness</span><span class="name">Logic</span></div>
+        <div class="pl-node"><span class="tag">Coverage</span><span class="name">TestPilot</span></div>
+        <div class="pl-node"><span class="tag">Documentation</span><span class="name">DocsGuard</span></div>
+      </div>
+      <div class="pl-arrow">↓</div>
+      <div class="pl-node pl-agg">
+        <span class="tag">Merge &amp; dedupe</span>
+        <span class="name">Review Aggregator → ReviewReport (Markdown + JSON)</span>
+      </div>
+      <div class="pl-node pl-dash">
+        <span class="tag">Live view</span>
+        <span class="name">PreVise Dashboard — approve, reject, fix</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="agents">
+    <div class="section-head">
+      <div>
+        <div class="section-num">02 — Agents</div>
+        <h2>Each agent owns one failure mode.</h2>
+      </div>
+      <div class="section-note">Every agent exposes the same contract: scan_file, scan_directory, list[Finding].</div>
+    </div>
+
+    <div class="agents-grid">
+      <div class="agent-card">
+        <span class="file">agents/sentinel.py</span>
+        <h3>Sentinel</h3>
+        <p>Security scanner — hardcoded secrets, SQL injection, plain-text passwords, weak JWT config, unauthenticated endpoints.</p>
+      </div>
+      <div class="agent-card">
+        <span class="file">agents/logic.py</span>
+        <h3>Logic</h3>
+        <p>Correctness scanner — missing balance guards, division by zero, implicit None returns, unhandled decode exceptions.</p>
+      </div>
+      <div class="agent-card">
+        <span class="file">prism/reviewers/test_pilot.py</span>
+        <h3>TestPilot</h3>
+        <p>Coverage scanner — missing test files, assertion-free tests, untested functions, absent edge cases and auth tests.</p>
+      </div>
+      <div class="agent-card">
+        <span class="file">prism/reviewers/docs_guard.py</span>
+        <h3>DocsGuard</h3>
+        <p>Documentation scanner — broken file references, undocumented or missing routes, absent docstrings.</p>
+      </div>
+      <div class="agent-card">
+        <span class="file">agents/aggregator.py</span>
+        <h3>Aggregator</h3>
+        <p>Merges every agent's findings, deduplicates by file/line/rule, classifies severity into one ReviewReport.</p>
+      </div>
+      <div class="agent-card">
+        <span class="file">agents/fix_agent.py</span>
+        <h3>Fix Agent</h3>
+        <p>Applies approved patches keyed by rule ID, then re-scans the touched files to confirm the fix actually landed.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="catalogue">
+    <div class="section-head">
+      <div>
+        <div class="section-num">03 — Rule Catalogue</div>
+        <h2>Reference findings from the demo app.</h2>
+      </div>
+      <div class="section-note">app/ ships with 7 intentional bugs used to exercise the full pipeline end to end.</div>
+    </div>
+
+    <div class="catalogue">
+      <div class="cat-cell"><span class="code">S-01 · CRITICAL</span><span class="desc">SECRET_KEY hardcoded directly in source</span></div>
+      <div class="cat-cell"><span class="code">S-02 · CRITICAL</span><span class="desc">SQL injection via f-string query construction</span></div>
+      <div class="cat-cell"><span class="code">S-03 · HIGH</span><span class="desc">Passwords stored and compared as plain text</span></div>
+      <div class="cat-cell"><span class="code">S-04 · CRITICAL</span><span class="desc">Weak JWT — hardcoded HS256 signing key</span></div>
+      <div class="cat-cell"><span class="code">L-01 · HIGH</span><span class="desc">transfer_funds executes with no balance check</span></div>
+      <div class="cat-cell"><span class="code">L-02 · MEDIUM</span><span class="desc">divide_balance has no zero-division guard</span></div>
+      <div class="cat-cell"><span class="code">L-04 · HIGH</span><span class="desc">decode_access_token leaves jwt.decode() unhandled</span></div>
+      <div class="cat-cell"><span class="code">T- / D-series</span><span class="desc">12 further checks across test coverage and docs drift</span></div>
+    </div>
+  </section>
+
+  <section id="stack">
+    <div class="section-head">
+      <div>
+        <div class="section-num">04 — Runtime</div>
+        <h2>What it's built with.</h2>
+      </div>
+      <div class="section-note">The demo API and the agents that review it are separate, deliberately.</div>
+    </div>
+
+    <div class="stack-row">
+      <span class="chip">FastAPI 0.111</span>
+      <span class="chip">SQLAlchemy 2.0</span>
+      <span class="chip">python-jose (JWT)</span>
+      <span class="chip">passlib (bcrypt)</span>
+      <span class="chip">Flask 3.x dashboard</span>
+      <span class="chip">pytest + pytest-asyncio</span>
+      <span class="chip">IBM Bob orchestration</span>
+    </div>
+
+    <div class="quickstart">
+      <span class="l c"># run the demo API</span>
+      <span class="l p">pip install -r requirements.txt</span>
+      <span class="l p">uvicorn app.main:app --reload</span>
+      <span class="l c"># run the full scan → fix → verify pipeline</span>
+      <span class="l p">python -m agents.bob_orchestrator app/ --fix --run-tests</span>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap header-row" style="width:100%;">
+    <span class="brand-mini">PreVise</span>
+    <span>Multi-agent review pipeline · demo application intentionally ships reviewable bugs</span>
+  </div>
+</footer>
+
+</body>
+</html>
